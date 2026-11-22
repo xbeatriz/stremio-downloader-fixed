@@ -54,7 +54,7 @@ async function action(method,file) {
 function modal(title, entries) {
   $('dialog-title').textContent=title
   const body=$('dialog-body')
-  body.replaceChildren()
+  while (body.firstChild) body.removeChild(body.firstChild)
   entries.forEach(item=>{
     const b=el('button','button',item.label)
     b.type='button'
@@ -130,7 +130,8 @@ function render() {
   const list=$('downloads-list')
   const fragment=document.createDocumentFragment()
   filtered.forEach(file=>fragment.append(card(file)))
-  list.replaceChildren(fragment)
+  while (list.firstChild) list.removeChild(list.firstChild)
+  list.appendChild(fragment)
   $('no-downloads').hidden=filtered.length!==0
   const empty=$('no-downloads')
   empty.querySelector('h3').textContent=files.length?'Nenhuma transferência encontrada':'Nenhuma transferência por aqui'
