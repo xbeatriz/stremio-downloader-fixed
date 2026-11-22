@@ -1,38 +1,85 @@
-# Correções experimentais — Stremio Downloader
+# Technical changes and fixes — Stremio Downloader
 
-Código original: https://github.com/BurningSands70/stremio-downloader
+This repository is a community-maintained fork of [BurningSands70/stremio-downloader](https://github.com/BurningSands70/stremio-downloader). It contains compatibility changes, a redesigned interface, and experimental media inspection.
 
-Esta cópia inclui correções preliminares em `lib/server.js` e `lib/proxy.js`:
+**Current source version:** `1.1.0` (defined in [package.json](package.json)). A version number does **not** guarantee that a Windows executable has been successfully built or published. See [GitHub Actions](https://github.com/xbeatriz/stremio-downloader-fixed/actions/workflows/windows-release.yml) and [Releases](https://github.com/xbeatriz/stremio-downloader-fixed/releases) for actual availability.
 
-- Porta preferida 8189; seleção automática de uma porta disponível e indicação no terminal.
-- Servidor local limitado a 127.0.0.1.
-- Proxy HTTPS para a página Stremio.
-- Respostas binárias preservadas; evitar manipular respostas comprimidas como texto.
-- Mensagens de erro do proxy para facilitar o diagnóstico.
+## Networking and Stremio integration
 
-## Executar no Windows (ambiente de desenvolvimento)
+- Preferred local server port: `8189`, with a fallback to an available port.
+- Local server listens on `127.0.0.1`.
+- HTTPS proxy to the Stremio web application.
+- Binary HTTP responses are preserved instead of being incorrectly manipulated as text.
+- CSS font URL rewriting was corrected to preserve valid quoting.
+- Better proxy error reporting for troubleshooting.
 
-Instalar Node.js e executar na pasta do repositório:
+When running locally, check the console for the actual listening port and open `http://127.0.0.1:<port>/downloader/` if required.
+
+## Dashboard redesign
+
+The original Material Design/jQuery-dependent interface was replaced with a dark, responsive dashboard using browser-native JavaScript and local CSS.
+
+- Search, status filters, transfer cards, and aggregate download counts.
+- Progress bars, download speed and estimated time remaining for supported downloads.
+- Actions to stop, restart, remove, locate, and open downloaded files.
+- Dialog handling adjusted for the legacy Electron runtime (including avoiding `replaceChildren()`, which the old Chromium version does not support).
+
+## Video, audio, and subtitle metadata (experimental)
+
+`lib/mediaMetadata.js` invokes the local **FFprobe executable** to inspect downloaded video files. The transfer API includes detected metadata when available:
+
+- Video codec and resolution (e.g., HEVC/H.265).
+- Embedded audio tracks, codecs, channels, and language metadata.
+- Embedded subtitle tracks and language metadata.
+
+### FFprobe requirement
+
+Install FFmpeg/FFprobe separately. It is **not included** in the Windows release archive.
+
+```powershell
+ffprobe -version
+```
+
+Ensure `ffprobe.exe` is available on the system `PATH`, or set `FFPROBE_PATH` to the full executable path before launching the app. Windows builds are available from providers linked by [ffmpeg.org](https://ffmpeg.org/download.html).
+
+The scanner reads local file metadata only. It does not transcode videos, perform speech recognition, or change how downloads are transferred.
+
+### Known limitations
+
+- An incomplete MKV/MP4 may not contain enough data to inspect, particularly if metadata is stored at the end.
+- Files are inspected asynchronously and retried; metadata may only become available after download completion.
+- Language labels are based on metadata tags. Missing or incorrect tags cannot be reliably determined from the file header alone.
+- External subtitle files (such as separate `.srt` files) are not scanned.
+- FFprobe is an external dependency, and absent/unreadable files are reported as unavailable.
+- The original download and streaming code still uses old libraries, including Electron 6, `request`, and `easy-ffmpeg`. These require continued maintenance and testing.
+
+## Windows packaging and releases
+
+The workflow at [`.github/workflows/windows-release.yml`](.github/workflows/windows-release.yml) builds a **portable Windows x64 application** using `electron-packager`.
+
+- Runs on pushes to `main` or manual dispatch, producing a temporary GitHub Actions artifact.
+- Reads the application version from `package.json`.
+- On tags matching `v*`, validates that the tag matches the `package.json` version, then uploads the portable ZIP to a GitHub Release.
+- The release ZIP includes `StremioDownloader.exe` **and supporting runtime files**. It is not a standalone executable and is not an installer.
+- No code signing or Windows installer is configured.
+
+To run locally:
 
 ```powershell
 npm install
 npm start
 ```
 
-Se a porta 8189 estiver ocupada, observa o endereço real indicado no terminal.
-Abre `http://127.0.0.1:PORTA/downloader/`, substituindo PORTA pelo valor apresentado.
+To package on Windows:
 
-**Estado:** correção não validada end-to-end no Windows. Electron 6 e outras dependências são antigas. A integração do Stremio e os downloads podem exigir alterações adicionais. O projeto ainda não tem um instalador atualizado.
+```powershell
+npm run build:win
+```
 
-Para criar o executável, será necessário validar primeiro as dependências e o funcionamento completo. Usa apenas conteúdos que estejas autorizado a descarregar.
+Before publishing a stable release, verify the workflow completes, launch the extracted application on a clean Windows system, test Stremio login/source selection, inspect HTTP and torrent transfers, and test Windows SmartScreen behavior. Building the package does not prove runtime compatibility.
 
+## Attribution
 
-## Metadados de vídeo, áudio e legendas (experimental)
+Original source: [BurningSands70/stremio-downloader](https://github.com/BurningSands70/stremio-downloader).
 
-O dashboard mostra o codec de vídeo (incluindo HEVC/H.265), as faixas de áudio e os idiomas indicados nos metadados, além das legendas incorporadas.
-
-**Pré-requisito:** instalar FFmpeg/FFprobe no Windows e disponibilizar `ffprobe.exe` no PATH, ou definir a variável de ambiente `FFPROBE_PATH` com o caminho completo de `ffprobe.exe`. Confirma com `ffprobe -version` no PowerShell antes de executar a aplicação.
-
-O programa lê apenas ficheiros locais e executa o FFprobe com timeout. Pode não conseguir analisar um MKV/MP4 ainda incompleto, especialmente quando os metadados estão no fim do ficheiro; nesses casos a interface mostra «A identificar…» e tenta novamente. Quando o ficheiro estiver terminado, pode ser necessário aguardar a próxima leitura. Idiomas ausentes ou incorretos nos metadados não são inferidos por reconhecimento de fala. Legendas externas (.srt) não são pesquisadas nesta versão.
-
-O FFprobe é utilizado apenas para leitura dos metadados, sem transcodificação e sem alterar os downloads.
+This is an independent community fork, not an official Stremio release. Please respect applicable licensing, copyright, and usage permissions.
