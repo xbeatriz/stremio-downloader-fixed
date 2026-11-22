@@ -79,6 +79,66 @@ function fileOptions(file) {
     {label:'Reproduzir vídeo',method:'play-video',file}
   ])
 }
+const languageNames = {
+  por: 'Português', pt: 'Português', 'pt-pt': 'Português (Portugal)', 'pt-br': 'Português (Brasil)',
+  eng: 'Inglês', en: 'Inglês', spa: 'Espanhol', es: 'Espanhol',
+  fra: 'Francês', fre: 'Francês', fr: 'Francês',
+  deu: 'Alemão', ger: 'Alemão', de: 'Alemão',
+  ita: 'Italiano', it: 'Italiano', jpn: 'Japonês', ja: 'Japonês',
+  kor: 'Coreano', ko: 'Coreano', rus: 'Russo', ru: 'Russo',
+  und: 'Não identificado'
+}
+function languageLabel(code) {
+  if (!code) return 'Não identificado'
+  const key = String(code).toLowerCase().replace(/_/g, '-')
+  return languageNames[key] || key.toUpperCase()
+}
+function codecLabel(value) {
+  const codes = { hevc:'HEVC / H.265', h264:'H.264', av1:'AV1', aac:'AAC', eac3:'E-AC-3', ac3:'AC-3', opus:'Opus', dts:'DTS', truehd:'TrueHD' }
+  const key = String(value || '').toLowerCase()
+  return codes[key] || (key ? key.toUpperCase() : 'Desconhecido')
+}
+function mediaSection(file) {
+  const media = file.media || { status:'waiting' }
+  const wrapper = el('div', 'media-section')
+  if (media.status !== 'ready') {
+    let label = 'A identificar áudio e legendas…'
+    if (media.status === 'missing-tool') label = 'FFprobe não encontrado — instala FFmpeg e reinicia a aplicação'
+    else if (media.status === 'unavailable') label = 'Metadados indisponíveis neste ficheiro'
+    wrapper.appendChild(el('div', 'media-pending', label))
+    return wrapper
+  }
+  const videos = media.video || []
+  const audio = media.audio || []
+  const subtitles = media.subtitles || []
+  const header = el('div', 'media-top')
+  header.appendChild(el('span', 'media-title', 'DETALHES DO VÍDEO'))
+  const video = videos[0]
+  if (video) {
+    let details = codecLabel(video.codec)
+    if (video.width && video.height) details += ' · ' + video.width + '×' + video.height
+    header.appendChild(el('span', 'media-video', details))
+  }
+  wrapper.appendChild(header)
+  const grid = el('div', 'media-grid')
+  const audioRow = el('div', 'media-group')
+  audioRow.appendChild(el('span', 'media-label', 'ÁUDIO'))
+  const audioText = audio.length ? audio.map(track => {
+    let value = languageLabel(track.language) + ' · ' + codecLabel(track.codec)
+    if (track.channels) value += ' · ' + track.channels + ' canais'
+    if (track.default) value += ' (principal)'
+    return value
+  }).join(' | ') : 'Nenhuma faixa identificada'
+  audioRow.appendChild(el('span', 'media-value', audioText))
+  const subtitleRow = el('div', 'media-group')
+  subtitleRow.appendChild(el('span', 'media-label', 'LEGENDAS'))
+  subtitleRow.appendChild(el('span', 'media-value', subtitles.length
+    ? subtitles.map(track => languageLabel(track.language) + (track.title ? ' (' + track.title + ')' : '')).join(' · ')
+    : 'Nenhuma faixa incorporada'))
+  grid.append(audioRow, subtitleRow)
+  wrapper.appendChild(grid)
+  return wrapper
+}
 function card(file) {
   const active=isActive(file)
   const card=el('article','download-card')
@@ -106,6 +166,7 @@ function card(file) {
     :file.error?'Não foi possível concluir':'Transferência interrompida'
   line.append(el('b','',details))
   main.append(line)
+  main.append(mediaSection(file))
   card.append(main)
   const actions=el('div','card-actions')
   if(file.finished) actions.append(button('▶','Abrir opções de reprodução',()=>fileOptions(file)))
