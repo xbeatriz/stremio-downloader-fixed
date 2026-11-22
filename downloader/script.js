@@ -54,7 +54,9 @@ function options(url) {
 		'<button class="mdl-button mdl-js-button mdl-button--raised" style="margin-top: 12px" onClick="closeDialog()">Close</button>'+
 	'</div>'
 	$('.mdl-dialog').html(str)
-	componentHandler.upgradeAllRegistered()
+	if (window.componentHandler && typeof window.componentHandler.upgradeAllRegistered === 'function') {
+		window.componentHandler.upgradeAllRegistered()
+	}
 	dialog.showModal()
 	setTimeout(() => {
 		document.activeElement.blur()
@@ -72,7 +74,9 @@ function fileOptions(url, filename) {
 		'<button class="mdl-button mdl-js-button mdl-button--raised" style="margin-top: 12px" onClick="closeDialog()">Close</button>'+
 	'</div>'
 	$('.mdl-dialog').html(str)
-	componentHandler.upgradeAllRegistered()
+	if (window.componentHandler && typeof window.componentHandler.upgradeAllRegistered === 'function') {
+		window.componentHandler.upgradeAllRegistered()
+	}
 	dialog.showModal()
 	setTimeout(() => {
 		document.activeElement.blur()
